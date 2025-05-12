@@ -1,8 +1,13 @@
 const asyncHandler= require('express-async-handler');
+const ApiFeatures= require('../utils/apiFeatures');
 exports.getAll = (Model) =>
   asyncHandler(async (req, res) => {
-    const documents = await Model.find();
-    res.status(200).json({ status: "success", data: documents });
+    const apiFeatures= new ApiFeatures(Model.find(), req.query).filter();
+    const {mongooseQuery, queryObj}= apiFeatures;
+    const documents= await mongooseQuery;
+    console.log(queryObj);
+    
+    res.status(200).json({ status: "success", data: documents }); 
   });
 
 exports.getOne = (Model) =>
