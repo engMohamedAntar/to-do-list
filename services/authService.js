@@ -39,15 +39,14 @@ exports.protect = asyncHandler(async (req, res, next) => {
   )
     return next(new ApiError("Not loggedIn please login first.", 401));
   const token = req.headers.authorization.split(" ")[1];
-
+  
   // verify token (not expired and valid)
   const decoded = jwt.verify(token, process.env.JWT_SECRET); //?
-
-  // ensure that the user still exit
+   
+  // ensure that the user still exit 
   const user = await User.findById(decoded.id);
   if (!user)
     return next(new ApiError("user of this token does no longer exist", 401));
-
   // check if the user password changed after token is created
   if (user.passwordChangedAt) {
     let passwordChangedAt = user.passwordChangedAt;
