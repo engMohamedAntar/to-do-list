@@ -5,6 +5,8 @@ const ApiError = require("../utils/apiError");
 const createJwt = require("../utils/createJWT");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const sendEmail= require('../utils/sendEmail');
+const crypto= require('crypto');
 
 // @desc signUp
 // @route POST localhost:3000/auth/signUp
@@ -31,7 +33,7 @@ exports.logIn = asyncHandler(async (req, res, next) => {
 });
 
 // @desc create the protect middlewaare
-exports.protect = asyncHandler(async (req, res, next) => {
+exports.protect = asyncHandler(async (req, res, next) => {  
   // check weather token exist (user is loggedIn)
   if (
     !req.headers.authorization ||
@@ -62,7 +64,7 @@ exports.protect = asyncHandler(async (req, res, next) => {
     );
 
   req.user = user;
-
+    
   next();
 });
 
@@ -71,8 +73,65 @@ exports.allowedTo =
   (...roles) =>
   (req, res, next) => {    
     const user= req.user;
+    
     if(!roles.includes(user.role))
         return next(new ApiError('You are not permitted to access this route', 403));
-    
+
     next();
   };
+
+// @desc fortgotPassword
+// @route POST localhost:3000/auth/forgotPassword
+// @access Public
+exports.forgotPassword= asyncHandler(async(req,res,next)=>{
+  // get email and from body & ensure a user exist for this email.
+  const user= await User.findOne({email: req.body.email});
+  if(!user)
+    return next(new ApiError('No user found for this email', 404));
+
+  //create a random 6 digits reset code.
+  const resetCode= Math.floor((Math.random()*1000000)+1).toString();
+
+  //send this code to loggedIn user  
+  sendEmail({
+    email: user.email,
+    subject: 'Password Reset Code - valid for 10 minutes',
+    message: `Your resetCode is ${resetCode}`
+  })
+  user.resetCodeCreatedAt= Date.now();
+  const hashedCode= crypto.createHash('sha256').update(resetCode).digest('hex');
+  user.resetCode= hashedCode;
+  await user.save();
+
+  res.status(200).json({status: 'success', message: "reset code sent to your email"});
+});
+
+// @desc verifyResetCode
+// @route POST localhost:3000/auth/verifyResetCode 
+// @access Public
+exports.verifyResetCode= asyncHandler(async(req,res,next)=>{
+  const hashedResetCode= crypto.createHash('sha256').update(req.body.resetCode).digest('hex');
+  const user= await User.findOne({email: req.body.email, resetCode: hashedResetCode, resetCodeCreatedAt:{$lt: Date.now()+10000}});
+  if(!user) 
+    return next(new ApiError('Invalid reseCode or expired', 400));
+  user.resetCodeVerified= true;
+  await user.save();
+
+  res.status(200).json({status: 'success', message: "reset code verified successfully"});
+});
+
+// @desc resetPassword
+// @route PUT localhost:3000/auth/resetPassword 
+// @access Public
+exports.resetPassword= asyncHandler(async(req,res,next)=>{
+  const user= await User.findOne({email: req.body.email});
+  if(!user.resetCodeVerified)
+    return next(new ApiError('resetCode not verified, verify it first', 400));
+  user.password= req.body.newPassword;
+  user.resetCode= undefined;
+  user.resetCodeCreatedAt= undefined; 
+  user.resetCodeVerified= false;
+  user.save();
+  const token= createJwt({id: user._id});
+  res.status(200).json({status: 'success', message: "password have been reset successfully", token});
+})

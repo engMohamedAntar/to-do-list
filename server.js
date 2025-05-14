@@ -5,6 +5,7 @@ dotenv.config();
 const PORT= process.env.PORT || 3000;
 const userRoute= require('./routes/userRoute');
 const authRoute= require('./routes/authRoute');
+const taskRoute= require('./routes/taskRoute');
 const dbConnection= require('./config/dbConnection');
 const errorMiddleware= require('./middlewares/errorMiddleware');
 const ApiError= require('./utils/apiError');
@@ -15,6 +16,7 @@ dbConnection();
 
 app.use('/users', userRoute);
 app.use('/auth', authRoute);
+app.use('/tasks', taskRoute);
 
 //handle incorrect routes
 app.all("*", (req, res, next) => {

@@ -18,11 +18,6 @@ const userSchema= new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: 6,
   },
-  passwordConfirm: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: 6,
-  },
   passwordChangedAt: Date,
   isActive: {
     type: Boolean,
@@ -32,7 +27,13 @@ const userSchema= new mongoose.Schema({
    type: String,
    enum: ['admin', 'user'],
    default: 'user',
-  }
+  },
+  resetCodeVerified: {
+    type: Boolean,
+    default: false
+  },
+  resetCode: String,
+  resetCodeCreatedAt: Date,
 },{timestamps:true});
 
 userSchema.pre('save', async function(next) {

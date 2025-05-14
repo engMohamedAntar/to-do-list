@@ -1,5 +1,4 @@
 const {check}= require('express-validator');
-const ApiError = require('../../../ecommerce-project/utils/apiError');
 const validatorMiddleware= require('../../middlewares/validatorMiddleware');
 
 exports.createUserValidator= [

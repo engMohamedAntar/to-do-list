@@ -22,6 +22,10 @@ const taskSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  favorite: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });
